@@ -113,5 +113,10 @@ RUN uv pip install --no-cache-dir --no-deps -e "."
 ENV HERMES_WEB_DIST=/opt/hermes/hermes_cli/web_dist
 ENV HERMES_HOME=/opt/data
 ENV PATH="/opt/data/.local/bin:${PATH}"
-VOLUME [ "/opt/data" ]
+# VOLUME removed for Railway compatibility — Railway rejects docker VOLUME and
+# wants Railway-Volumes (declared in dashboard) instead. Without a Railway
+# volume mounted at /opt/data, files there are ephemeral across deploys; the
+# entrypoint re-seeds SOUL.md, memories/, and config.yaml from /opt/hermes/docker/
+# on every boot, so the agent's identity is stable. Add a Railway volume mount
+# at /opt/data later if cron history / session history need to persist.
 ENTRYPOINT [ "/usr/bin/tini", "-g", "--", "/opt/hermes/docker/entrypoint.sh" ]
