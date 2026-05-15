@@ -75,14 +75,30 @@ if [ ! -f "$HERMES_HOME/.env" ]; then
     cp "$INSTALL_DIR/.env.example" "$HERMES_HOME/.env"
 fi
 
-# config.yaml
+# config.yaml — prefer atlas-config.yaml if shipped (atlas-deploy branch), else default
 if [ ! -f "$HERMES_HOME/config.yaml" ]; then
-    cp "$INSTALL_DIR/cli-config.yaml.example" "$HERMES_HOME/config.yaml"
+    if [ -f "$INSTALL_DIR/docker/atlas-config.yaml" ]; then
+        cp "$INSTALL_DIR/docker/atlas-config.yaml" "$HERMES_HOME/config.yaml"
+    else
+        cp "$INSTALL_DIR/cli-config.yaml.example" "$HERMES_HOME/config.yaml"
+    fi
 fi
 
 # SOUL.md
 if [ ! -f "$HERMES_HOME/SOUL.md" ]; then
     cp "$INSTALL_DIR/docker/SOUL.md" "$HERMES_HOME/SOUL.md"
+fi
+
+# Atlas seed memories — USER.md / MEMORY.md (first boot only; volume-preserved after)
+if [ -d "$INSTALL_DIR/docker/seed-memories" ]; then
+    mkdir -p "$HERMES_HOME/memories"
+    for f in "$INSTALL_DIR/docker/seed-memories"/*.md; do
+        [ -e "$f" ] || continue
+        name=$(basename "$f")
+        if [ ! -f "$HERMES_HOME/memories/$name" ]; then
+            cp "$f" "$HERMES_HOME/memories/$name"
+        fi
+    done
 fi
 
 # auth.json: bootstrap from env on first boot only.  Used by orchestrators
