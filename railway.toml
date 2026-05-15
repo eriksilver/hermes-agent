@@ -1,0 +1,18 @@
+# Railway deployment config for Atlas (Hermes gateway as chief-of-staff agent).
+# Use the project Dockerfile (not Nixpacks) and run the gateway daemon.
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+# Hermes' Docker entrypoint runs `hermes "$@"` — we pass `gateway run` so the
+# Slack Socket Mode connection comes up automatically.
+startCommand = "hermes gateway run"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5
+
+# Hermes gateway uses Slack Socket Mode (outbound WebSocket) — no HTTP listener
+# needed. Railway will leave the service "deployed" without a public URL,
+# which is correct for a Socket Mode agent.
+healthcheckPath = ""
