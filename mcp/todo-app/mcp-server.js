@@ -9,6 +9,14 @@ import "./mcp-load-env.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+// Node < 22 has no native WebSocket; @supabase/supabase-js v2 constructs a
+// RealtimeClient unconditionally and crashes at init without one (even when
+// only REST is used). Railway's Hermes image runs Node 20 — polyfill here
+// so the vendored copy works on Railway without forking the source.
+if (typeof globalThis.WebSocket === "undefined") {
+  const { default: ws } = await import("ws");
+  globalThis.WebSocket = ws;
+}
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
