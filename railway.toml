@@ -13,7 +13,12 @@ dockerfilePath = "Dockerfile"
 # Invoke tini + entrypoint.sh explicitly, passing `gateway run` as args.
 # The entrypoint sources /opt/hermes/.venv/bin/activate (which adds hermes to
 # PATH) and then `exec hermes "$@"`. tini reaps MCP stdio subprocesses.
-startCommand = "/usr/bin/tini -g -- /opt/hermes/docker/entrypoint.sh gateway run"
+#
+# `-v` raises stderr verbosity from WARNING to INFO. Without it, plugin
+# discovery + Slack Socket Mode connect log records only land in the on-disk
+# gateway.log inside the container — Railway captures stdout/stderr only, so
+# the gateway looked stalled after the banner when it was actually fine.
+startCommand = "/usr/bin/tini -g -- /opt/hermes/docker/entrypoint.sh gateway run -v"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 5
 
