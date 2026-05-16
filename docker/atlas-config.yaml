@@ -496,11 +496,19 @@ mcp_servers:
     command: node
     args:
     - /opt/hermes/mcp/todo-app/mcp-server.js
+    # Hermes filters subprocess env to a safe baseline (PATH/HOME/etc.) and
+    # only passes through what's declared here. Supabase creds come from
+    # Railway env via ${VAR} interpolation at config load.
+    env:
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
     enabled: true
   github:
     command: github-mcp-server
     args:
     - stdio
+    env:
+      GITHUB_PERSONAL_ACCESS_TOKEN: ${GITHUB_PERSONAL_ACCESS_TOKEN}
     enabled: true
     tools:
       include:
