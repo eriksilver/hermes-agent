@@ -75,13 +75,14 @@ if [ ! -f "$HERMES_HOME/.env" ]; then
     cp "$INSTALL_DIR/.env.example" "$HERMES_HOME/.env"
 fi
 
-# config.yaml — prefer atlas-config.yaml if shipped (atlas-deploy branch), else default
-if [ ! -f "$HERMES_HOME/config.yaml" ]; then
-    if [ -f "$INSTALL_DIR/docker/atlas-config.yaml" ]; then
-        cp "$INSTALL_DIR/docker/atlas-config.yaml" "$HERMES_HOME/config.yaml"
-    else
-        cp "$INSTALL_DIR/cli-config.yaml.example" "$HERMES_HOME/config.yaml"
-    fi
+# config.yaml — on atlas-deploy we treat the seed as authoritative on every
+# boot (IaC: edit atlas-config.yaml, push, redeploy). Any in-container edits
+# are erased by the next deploy. The non-atlas fallback (cli-config.yaml.example)
+# stays write-once so an upstream-image run keeps the original behaviour.
+if [ -f "$INSTALL_DIR/docker/atlas-config.yaml" ]; then
+    cp "$INSTALL_DIR/docker/atlas-config.yaml" "$HERMES_HOME/config.yaml"
+elif [ ! -f "$HERMES_HOME/config.yaml" ]; then
+    cp "$INSTALL_DIR/cli-config.yaml.example" "$HERMES_HOME/config.yaml"
 fi
 
 # SOUL.md

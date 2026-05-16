@@ -24,6 +24,25 @@ RUN /usr/local/bin/uv pip install --no-cache-dir \
     --python /opt/hermes/.venv/bin/python \
     slack-bolt slack-sdk aiohttp
 
+# github-mcp-server (R2.A) — pinned to v1.0.4 to match Erik's local install.
+# Provides GitHub source-of-truth tools (list_commits, search_code, etc.).
+# Single static binary, ~15 MB. PAT comes from GITHUB_PERSONAL_ACCESS_TOKEN env.
+ARG GITHUB_MCP_VERSION=v1.0.4
+RUN curl -fsSL "https://github.com/github/github-mcp-server/releases/download/${GITHUB_MCP_VERSION}/github-mcp-server_Linux_x86_64.tar.gz" \
+    | tar -xz -C /usr/local/bin github-mcp-server \
+    && chmod +x /usr/local/bin/github-mcp-server
+
+# todo-app MCP (R2.B) — vendored copy of custom-to-do-app/mcp-server.js. The
+# source of truth lives at ~/AIHub/Dev/custom-to-do-app/ on Erik's Mac; this is
+# the deployable mirror. npm install in its own layer so a code-only change to
+# mcp-server.js doesn't bust the node_modules cache.
+COPY mcp/todo-app/package.json /opt/hermes/mcp/todo-app/package.json
+RUN cd /opt/hermes/mcp/todo-app \
+    && npm install --omit=dev --no-audit --no-fund \
+    && npm cache clean --force
+COPY mcp/todo-app/mcp-server.js   /opt/hermes/mcp/todo-app/mcp-server.js
+COPY mcp/todo-app/mcp-load-env.js /opt/hermes/mcp/todo-app/mcp-load-env.js
+
 COPY docker/SOUL.md                 /opt/hermes/docker/SOUL.md
 COPY docker/atlas-config.yaml       /opt/hermes/docker/atlas-config.yaml
 COPY docker/seed-memories/USER.md   /opt/hermes/docker/seed-memories/USER.md

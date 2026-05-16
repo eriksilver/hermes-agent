@@ -1,0 +1,13 @@
+{
+  "name": "atlas-todo-app-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Vendored copy of custom-to-do-app/mcp-server.js for Atlas-on-Railway. Source of truth is ~/AIHub/Dev/custom-to-do-app/.",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@supabase/supabase-js": "^2.39.0",
+    "dotenv": "^16.4.0",
+    "zod": "^3.23.8"
+  }
+}

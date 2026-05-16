@@ -362,7 +362,10 @@ honcho: {}
 timezone: ''
 slack:
   require_mention: true
-  free_response_channels: ''
+  # #chief is Atlas's home — he should respond there without needing @-mention.
+  # Other channels (#code-manager today, #real-estate / #personal later) keep
+  # require_mention so multi-bot channels don't collide.
+  free_response_channels: C0B46K3HH8R
   allowed_channels: ''
   channel_prompts: {}
   reply_in_thread: false
@@ -485,6 +488,34 @@ platform_toolsets:
   - hermes-teams
   google_chat:
   - hermes-google_chat
+# ── MCP Servers ───────────────────────────────────────────────────────
+# Atlas-on-Railway MCP wiring. Mirrors the local Hermes install but uses
+# in-container paths and reads secrets from the Railway env.
+mcp_servers:
+  todo-app:
+    command: node
+    args:
+    - /opt/hermes/mcp/todo-app/mcp-server.js
+    enabled: true
+  github:
+    command: github-mcp-server
+    args:
+    - stdio
+    enabled: true
+    tools:
+      include:
+      - get_me
+      - list_commits
+      - get_commit
+      - list_pull_requests
+      - pull_request_read
+      - list_issues
+      - issue_read
+      - search_code
+      - search_repositories
+      - get_file_contents
+      - list_branches
+      - list_releases
 # ── Fallback Model ────────────────────────────────────────────────────
 # Automatic provider failover when primary is unavailable.
 # Uncomment and configure to enable. Triggers on rate limits (429),
