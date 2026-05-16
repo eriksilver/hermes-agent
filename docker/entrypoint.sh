@@ -121,6 +121,23 @@ if [ -d "$INSTALL_DIR/skills" ]; then
     python3 "$INSTALL_DIR/tools/skills_sync.py"
 fi
 
+# ── Atlas MCP smoke test (TEMPORARY — revert once todo-app MCP connects) ──
+# Hermes filters MCP subprocess env and writes stderr to a file we can't
+# read from Railway without SSH keys, so the "Connection closed" error is
+# opaque. This one-shot probe runs the todo-app MCP for 2 seconds and
+# dumps any stderr/import failure into Railway's log stream.
+if [ -x /usr/bin/node ] || command -v node >/dev/null 2>&1; then
+    echo "===ATLAS-MCP-SMOKE-TEST==="
+    echo "node: $(command -v node)  npm: $(command -v npm)"
+    echo "modules: $(ls /opt/hermes/mcp/todo-app/node_modules 2>/dev/null | head -5 | tr '\n' ' ')"
+    (
+      cd /opt/hermes/mcp/todo-app && \
+      timeout 4 env SUPABASE_URL="${SUPABASE_URL:-MISSING}" SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY:-MISSING}" \
+        node mcp-server.js </dev/null 2>&1 | head -40
+    ) || echo "smoke exit=$?"
+    echo "===ATLAS-MCP-SMOKE-TEST-END==="
+fi
+
 # Optionally start `hermes dashboard` as a side-process.
 #
 # Toggled by HERMES_DASHBOARD=1 (also accepts "true"/"yes", case-insensitive).
