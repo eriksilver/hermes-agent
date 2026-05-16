@@ -47,4 +47,5 @@ COPY docker/SOUL.md                 /opt/hermes/docker/SOUL.md
 COPY docker/atlas-config.yaml       /opt/hermes/docker/atlas-config.yaml
 COPY docker/seed-memories/USER.md   /opt/hermes/docker/seed-memories/USER.md
 COPY docker/seed-memories/MEMORY.md /opt/hermes/docker/seed-memories/MEMORY.md
+COPY docker/seed-cron/jobs.json     /opt/hermes/docker/seed-cron/jobs.json
 COPY docker/entrypoint.sh           /opt/hermes/docker/entrypoint.sh

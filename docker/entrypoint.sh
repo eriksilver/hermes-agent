@@ -107,6 +107,22 @@ if [ -d "$INSTALL_DIR/docker/seed-memories" ]; then
     done
 fi
 
+# Atlas seed cron jobs — same pattern as memories. Hermes mutates jobs.json
+# on every run (last_run_at, next_run_at, repeat.completed), so write-once
+# protects that runtime state. HERMES_FORCE_RESEED_CRON=1 forces a one-shot
+# replace when the prompt or schedule needs to change.
+if [ -d "$INSTALL_DIR/docker/seed-cron" ]; then
+    mkdir -p "$HERMES_HOME/cron"
+    for f in "$INSTALL_DIR/docker/seed-cron"/*.json; do
+        [ -e "$f" ] || continue
+        name=$(basename "$f")
+        if [ ! -f "$HERMES_HOME/cron/$name" ] \
+           || [ "${HERMES_FORCE_RESEED_CRON:-0}" = "1" ]; then
+            cp "$f" "$HERMES_HOME/cron/$name"
+        fi
+    done
+fi
+
 # auth.json: bootstrap from env on first boot only.  Used by orchestrators
 # (e.g. provisioning a Hermes VPS from an account-management service) that
 # need to seed the OAuth refresh credential non-interactively, instead of
