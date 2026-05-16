@@ -90,13 +90,18 @@ if [ ! -f "$HERMES_HOME/SOUL.md" ]; then
     cp "$INSTALL_DIR/docker/SOUL.md" "$HERMES_HOME/SOUL.md"
 fi
 
-# Atlas seed memories — USER.md / MEMORY.md (first boot only; volume-preserved after)
+# Atlas seed memories — default write-once so Hermes' runtime memory writes
+# (auto-appends to USER.md / MEMORY.md as Erik chats) are preserved across
+# deploys. Set HERMES_FORCE_RESEED_MEMORIES=1 in Railway env for a single
+# deploy when the seed needs to replace the volume copy (e.g. a substantive
+# rewrite of MEMORY.md), then clear the var after the deploy.
 if [ -d "$INSTALL_DIR/docker/seed-memories" ]; then
     mkdir -p "$HERMES_HOME/memories"
     for f in "$INSTALL_DIR/docker/seed-memories"/*.md; do
         [ -e "$f" ] || continue
         name=$(basename "$f")
-        if [ ! -f "$HERMES_HOME/memories/$name" ]; then
+        if [ ! -f "$HERMES_HOME/memories/$name" ] \
+           || [ "${HERMES_FORCE_RESEED_MEMORIES:-0}" = "1" ]; then
             cp "$f" "$HERMES_HOME/memories/$name"
         fi
     done
