@@ -13,7 +13,12 @@ dockerfilePath = "Dockerfile"
 # Fix: invoke tini + entrypoint.sh explicitly, passing `gateway run` as args.
 # The entrypoint sources /opt/hermes/.venv/bin/activate (which adds hermes to
 # PATH) and then `exec hermes "$@"`. tini reaps MCP stdio subprocesses.
-startCommand = "/usr/bin/tini -g -- /opt/hermes/docker/entrypoint.sh gateway run"
+#
+# 2026-05-15 — debug variant: wrap in atlas-debug-start.sh so we print env +
+# binary checks before the entrypoint. First R1 deploy reached "Hermes Gateway
+# Starting…" banner then went silent (no plugin discovery, no Slack connect).
+# Revert to direct entrypoint invocation once Atlas is observed connecting.
+startCommand = "/usr/bin/tini -g -- /opt/hermes/docker/atlas-debug-start.sh"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 5
 
