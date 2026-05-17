@@ -360,6 +360,14 @@ curator:
     keep: 5
 honcho: {}
 timezone: ''
+# Keep consecutive top-level Slack DMs in one continuous session instead of
+# spawning a fresh session per message. Without this, each DM arrives with an
+# empty transcript and Atlas can't recall what was said a minute earlier
+# (gateway/platforms/slack.py:947). Idle reset still kicks in at session_reset.
+platforms:
+  slack:
+    extra:
+      dm_top_level_threads_as_sessions: false
 slack:
   require_mention: true
   # #chief is Atlas's home — he should respond there without needing @-mention.
