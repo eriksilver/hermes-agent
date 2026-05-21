@@ -123,6 +123,34 @@ if [ -d "$INSTALL_DIR/docker/seed-cron" ]; then
     done
 fi
 
+# Google Workspace MCP credentials — seed per-account refresh tokens from
+# Railway env vars on first boot. Each GOOGLE_CREDS_<LABEL>_B64 is the
+# base64 of the JSON file workspace-mcp wrote during local OAuth consent
+# (see mcp/google-workspace/SETUP.md).
+#
+# Files are write-once: a cred file on the volume is preserved across
+# deploys so workspace-mcp can rotate its access token in place. If you
+# need to force a re-seed (e.g. after re-running OAuth consent on the Mac
+# to get a new refresh token), bump GOOGLE_CREDS_RESEED in Railway to any
+# truthy value for one deploy, then clear it.
+gws_seed() {
+    local label="$1" email="$2" b64="$3"
+    local dir="$HERMES_HOME/google-workspace-mcp/${label}-creds"
+    local file="$dir/${email}.json"
+    if [ -z "$b64" ]; then
+        return
+    fi
+    mkdir -p "$dir"
+    chmod 700 "$dir"
+    if [ ! -f "$file" ] || [ "${GOOGLE_CREDS_RESEED:-0}" = "1" ]; then
+        echo "Seeding google-workspace-mcp creds: $file"
+        printf '%s' "$b64" | base64 -d > "$file"
+        chmod 600 "$file"
+    fi
+}
+gws_seed personal "quiksilvere@gmail.com" "${GOOGLE_CREDS_PERSONAL_B64:-}"
+gws_seed work     "hello@pksprops.com"    "${GOOGLE_CREDS_WORK_B64:-}"
+
 # auth.json: bootstrap from env on first boot only.  Used by orchestrators
 # (e.g. provisioning a Hermes VPS from an account-management service) that
 # need to seed the OAuth refresh credential non-interactively, instead of
@@ -192,4 +220,16 @@ esac
 if [ $# -gt 0 ] && command -v "$1" >/dev/null 2>&1; then
     exec "$@"
 fi
-exec hermes "$@"
+
+# VERIFICATION MODE — temporarily dropped `exec` so the shell can capture
+# hermes's exit code and log it. We're diagnosing "Deploy Crashed!" emails
+# that fire every redeploy: the new container boots fine but Railway sees
+# the displaced container's gateway exiting non-zero on SIGTERM. This
+# logs the actual code so we know whether to (a) fix Hermes shutdown,
+# (b) trap and translate it in the entrypoint, or (c) silence emails.
+# Restore `exec hermes "$@"` once we have the data.
+set +e
+hermes "$@"
+EXIT_CODE=$?
+echo "[entrypoint] hermes exited code=$EXIT_CODE" >&2
+exit "$EXIT_CODE"
