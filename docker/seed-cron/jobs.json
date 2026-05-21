@@ -14,10 +14,10 @@
       "context_from": null,
       "schedule": {
         "kind": "cron",
-        "expr": "0 7 * * *",
-        "display": "0 7 * * *"
+        "expr": "0 6 * * *",
+        "display": "0 6 * * *"
       },
-      "schedule_display": "0 7 * * *",
+      "schedule_display": "0 6 * * *",
       "repeat": {
         "times": null,
         "completed": 0
