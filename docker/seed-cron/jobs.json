@@ -3,7 +3,7 @@
     {
       "id": "todo-digest",
       "name": "todo-digest",
-      "prompt": "Trigger the morning to-do digest. POST to https://custom-to-do-app-production.up.railway.app/api/organize?unprocessedOnly=true (no body needed). The endpoint classifies unprocessed items with Claude and posts a Block Kit digest to Slack #brain-dump itself — partitioned with #top items under a 🔴 Priority header, others under 📋 Other new items. After the request returns, reply with one short line: either the JSON `message` field (e.g. '5 new items captured' or 'No new ideas since last organize') or 'Digest endpoint error: <status>' if it failed. Under 30 words. Atlas voice — no hype.",
+      "prompt": "Trigger the morning to-do digest. POST to https://custom-to-do-app-production.up.railway.app/api/organize?unprocessedOnly=true (no body needed). The endpoint classifies unprocessed items with Claude and posts a Block Kit digest to Slack #brain-dump itself — partitioned with #top items under a 🔴 Priority header, others under 📋 Other new items. After the request returns, check the JSON in this order: (1) if HTTP status != 200, reply 'Digest endpoint error: <status>'. (2) Else if a `slack` array exists and any entry has ok !== true, reply 'Digest classified N items but Slack post failed: <error codes from failing entries>' — this means #brain-dump never got the post. (3) Otherwise reply with the `message` field (e.g. '5 new items captured' or 'No new ideas since last organize'). Under 40 words. Atlas voice — no hype.",
       "skills": [],
       "skill": null,
       "model": null,
