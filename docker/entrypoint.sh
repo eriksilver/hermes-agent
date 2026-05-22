@@ -236,23 +236,29 @@ if [ $# -gt 0 ] && command -v "$1" >/dev/null 2>&1; then
 fi
 
 # Shutdown wrapper — Railway was firing "Deploy Crashed!" emails on every
-# redeploy because the displaced container's hermes process exits non-zero
-# on SIGTERM (either hermes itself returns 143, or it's SIGKILLed after
-# the grace period). The wrapper does two things:
-#   1. `trap '' SIGTERM SIGINT` makes bash ignore the signal so it doesn't
-#      die with 143 the moment the foreground child exits. tini -g still
-#      forwards SIGTERM to the whole process group, so hermes still
-#      receives it and shuts down on its own.
-#   2. Translates clean-shutdown exit codes (0, 130 SIGINT, 143 SIGTERM)
-#      to 0 before exiting so Railway sees a graceful stop. Other non-zero
-#      codes still propagate, so a real crash mid-run isn't masked.
-# The echo line lets us see hermes's actual exit code in Deploy Logs.
+# redeploy because hermes deliberately exits with code 1 on SIGTERM, per
+# its own log line: "Exiting with code 1 (signal-initiated shutdown without
+# restart request) so systemd Restart=on-failure can revive the gateway."
+# Railway treats any non-zero exit as a crash, so this graceful behavior
+# triggers a "Deploy Crashed!" email on every redeploy + restart cycle.
+#
+# We can't simply translate exit-1 to 0 unconditionally — a startup
+# failure (missing env, bad config) also exits 1, and masking that would
+# hide real bugs *and* defeat Railway's ON_FAILURE restart policy. So we
+# record whether SIGTERM/SIGINT was actually received, and only translate
+# when it was. Real mid-run crashes still propagate their exit code.
+#
+# tini -g forwards SIGTERM to the whole process group, so hermes still
+# receives the signal directly even though bash's trap handler is just
+# bookkeeping (hermes installs its own SIGTERM handler at startup that
+# overrides the inherited disposition from this trap).
 set +e
-trap '' SIGTERM SIGINT
+RECEIVED_TERM=0
+trap 'RECEIVED_TERM=1' SIGTERM SIGINT
 hermes "$@"
 EXIT_CODE=$?
-echo "[entrypoint] hermes exited code=$EXIT_CODE" >&2
-case "$EXIT_CODE" in
-    0|130|143) exit 0 ;;
-    *) exit "$EXIT_CODE" ;;
-esac
+echo "[entrypoint] hermes exited code=$EXIT_CODE received_term=$RECEIVED_TERM" >&2
+if [ "$RECEIVED_TERM" = "1" ]; then
+    exit 0
+fi
+exit "$EXIT_CODE"
