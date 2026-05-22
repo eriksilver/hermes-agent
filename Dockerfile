@@ -24,6 +24,13 @@ RUN /usr/local/bin/uv pip install --no-cache-dir \
     --python /opt/hermes/.venv/bin/python \
     slack-bolt slack-sdk aiohttp
 
+# workspace-mcp — taylorwilsdon/google_workspace_mcp. Two stdio instances run
+# at gateway boot (one per Google account, see atlas-config.yaml). Installed
+# into Hermes' venv so the `workspace-mcp` console script is on PATH.
+RUN /usr/local/bin/uv pip install --no-cache-dir \
+    --python /opt/hermes/.venv/bin/python \
+    workspace-mcp
+
 # github-mcp-server (R2.A) — pinned to v1.0.4 to match Erik's local install.
 # Provides GitHub source-of-truth tools (list_commits, search_code, etc.).
 # Single static binary, ~15 MB. PAT comes from GITHUB_PERSONAL_ACCESS_TOKEN env.
@@ -48,4 +55,5 @@ COPY docker/atlas-config.yaml       /opt/hermes/docker/atlas-config.yaml
 COPY docker/seed-memories/USER.md   /opt/hermes/docker/seed-memories/USER.md
 COPY docker/seed-memories/MEMORY.md /opt/hermes/docker/seed-memories/MEMORY.md
 COPY docker/seed-cron/jobs.json     /opt/hermes/docker/seed-cron/jobs.json
+COPY docker/merge_cron_seed.py      /opt/hermes/docker/merge_cron_seed.py
 COPY docker/entrypoint.sh           /opt/hermes/docker/entrypoint.sh

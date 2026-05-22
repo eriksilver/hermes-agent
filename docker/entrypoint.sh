@@ -107,18 +107,32 @@ if [ -d "$INSTALL_DIR/docker/seed-memories" ]; then
     done
 fi
 
-# Atlas seed cron jobs — same pattern as memories. Hermes mutates jobs.json
-# on every run (last_run_at, next_run_at, repeat.completed), so write-once
-# protects that runtime state. HERMES_FORCE_RESEED_CRON=1 forces a one-shot
-# replace when the prompt or schedule needs to change.
+# Atlas seed cron jobs — declarative merge on every boot.
+#
+# Seed (image-baked) owns each job's declarative shape: prompt, schedule,
+# enabled, deliver, name, skills, model overrides, workdir, etc. The
+# volume (persistent disk) owns the runtime state Hermes mutates per run:
+# repeat.completed, state, last_run_at, next_run_at, paused_at,
+# paused_reason. The merge script applies seed-side edits without
+# clobbering scheduling continuity.
+#
+# Jobs present in the volume but not in the seed are preserved (Atlas
+# can create crons at runtime via Slack — those shouldn't be erased).
+# Removing a job from the seed does NOT remove it from the volume; use
+# HERMES_FORCE_RESEED_CRON=1 for a full reset that discards runtime
+# state and any user-added jobs.
+#
+# First-boot path (or forced reseed) still does a plain copy.
 if [ -d "$INSTALL_DIR/docker/seed-cron" ]; then
     mkdir -p "$HERMES_HOME/cron"
-    for f in "$INSTALL_DIR/docker/seed-cron"/*.json; do
-        [ -e "$f" ] || continue
-        name=$(basename "$f")
-        if [ ! -f "$HERMES_HOME/cron/$name" ] \
-           || [ "${HERMES_FORCE_RESEED_CRON:-0}" = "1" ]; then
-            cp "$f" "$HERMES_HOME/cron/$name"
+    for seed_file in "$INSTALL_DIR/docker/seed-cron"/*.json; do
+        [ -e "$seed_file" ] || continue
+        name=$(basename "$seed_file")
+        vol_file="$HERMES_HOME/cron/$name"
+        if [ ! -f "$vol_file" ] || [ "${HERMES_FORCE_RESEED_CRON:-0}" = "1" ]; then
+            cp "$seed_file" "$vol_file"
+        else
+            python3 "$INSTALL_DIR/docker/merge_cron_seed.py" "$seed_file" "$vol_file"
         fi
     done
 fi
