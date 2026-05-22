@@ -221,15 +221,24 @@ if [ $# -gt 0 ] && command -v "$1" >/dev/null 2>&1; then
     exec "$@"
 fi
 
-# VERIFICATION MODE — temporarily dropped `exec` so the shell can capture
-# hermes's exit code and log it. We're diagnosing "Deploy Crashed!" emails
-# that fire every redeploy: the new container boots fine but Railway sees
-# the displaced container's gateway exiting non-zero on SIGTERM. This
-# logs the actual code so we know whether to (a) fix Hermes shutdown,
-# (b) trap and translate it in the entrypoint, or (c) silence emails.
-# Restore `exec hermes "$@"` once we have the data.
+# Shutdown wrapper — Railway was firing "Deploy Crashed!" emails on every
+# redeploy because the displaced container's hermes process exits non-zero
+# on SIGTERM (either hermes itself returns 143, or it's SIGKILLed after
+# the grace period). The wrapper does two things:
+#   1. `trap '' SIGTERM SIGINT` makes bash ignore the signal so it doesn't
+#      die with 143 the moment the foreground child exits. tini -g still
+#      forwards SIGTERM to the whole process group, so hermes still
+#      receives it and shuts down on its own.
+#   2. Translates clean-shutdown exit codes (0, 130 SIGINT, 143 SIGTERM)
+#      to 0 before exiting so Railway sees a graceful stop. Other non-zero
+#      codes still propagate, so a real crash mid-run isn't masked.
+# The echo line lets us see hermes's actual exit code in Deploy Logs.
 set +e
+trap '' SIGTERM SIGINT
 hermes "$@"
 EXIT_CODE=$?
 echo "[entrypoint] hermes exited code=$EXIT_CODE" >&2
-exit "$EXIT_CODE"
+case "$EXIT_CODE" in
+    0|130|143) exit 0 ;;
+    *) exit "$EXIT_CODE" ;;
+esac
