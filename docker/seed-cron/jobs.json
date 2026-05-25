@@ -32,6 +32,37 @@
       "workdir": "/opt/data/workspace"
     },
     {
+      "id": "scraper-suite-heartbeat",
+      "name": "scraper-suite-heartbeat",
+      "prompt": "Check whether the scraper-suite scrapers ran on cadence. Use the shell tool to query Supabase REST (env vars SCRAPER_SUITE_SUPABASE_URL and SCRAPER_SUITE_SUPABASE_SERVICE_KEY are set in Railway):\n\n  curl -s \"$SCRAPER_SUITE_SUPABASE_URL/rest/v1/pipeline_runs?select=scraper,status,created_at,run_at&status=eq.success&order=created_at.desc&limit=80\" -H \"apikey: $SCRAPER_SUITE_SUPABASE_SERVICE_KEY\" -H \"Authorization: Bearer $SCRAPER_SUITE_SUPABASE_SERVICE_KEY\"\n\nFor each of these scrapers, find the most-recent success and compute age in hours from now:\n  - craigslist           (expected every 6h, alert if > 12h since last success)\n  - stl_city_violations  (expected weekly,  alert if > 8d  since last success)\n  - stl_vacant           (expected weekly,  alert if > 8d  since last success)\n  - casenet              (expected weekly,  alert if > 8d  since last success)\n\nIf ALL four are within tolerance, reply exactly: `Scrapers: all 4 green (freshest: <name>, <age>; oldest: <name>, <age>).`\n\nIf ANY are overdue, reply with `⚠ <@U03H98ETATE> scraper heartbeat — overdue:` followed by one bullet per overdue scraper: `• <scraper> — last ran <YYYY-MM-DD> (<X>d/<Xh> ago, expected <cadence>). <remediation>`. Remediation hints:\n  - craigslist: check `crontab -l` on the Mac or `npm run scrape:craigslist`\n  - stl_city_violations / stl_vacant: `npm run weekly` on the Mac (probably missed Monday 8am — Mac was asleep)\n  - casenet: `python3 scrapers/casenet/run_weekly.py --casenet-only` on the Mac\n\nIf anything is overdue, ALSO DM Erik (Slack user U03H98ETATE) with the same overdue list using whichever Slack send tool is available. If no DM tool is available, the `<@U03H98ETATE>` mention in the #chief reply will push-notify him on mobile — that's the fallback.\n\nUnder 200 words. Atlas voice — no hype, no apology. No emoji except the leading ⚠ when overdue.",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": null,
+      "no_agent": false,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 9 * * *",
+        "display": "0 9 * * *"
+      },
+      "schedule_display": "0 9 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 0
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "deliver": "slack:C0B46K3HH8R",
+      "origin": null,
+      "enabled_toolsets": null,
+      "workdir": "/opt/data/workspace"
+    },
+    {
       "id": "code-standup",
       "name": "code-standup",
       "prompt": "Post a morning code standup to Slack #chief. Pull source data live from GitHub via the github MCP — Erik's username is `eriksilver`. Steps: (1) Call mcp_github_search_repositories with `user:eriksilver` to enumerate his repos. (2) For each repo, call mcp_github_list_commits with `since` set to yesterday 00:00 Central (US/Chicago) and `until` set to today 00:00 Central — skip repos with no commits in that window. (3) Format the post: one-line greeting → `Yesterday:` (group by repo, one-line per commit, leading bullet, short subject only, skip merge commits) → `Queued / planned:` (pull from todo-app `mcp_todo_app_list_dev_projects` where status is `active`; if none active, say `Nothing queued.`) → one dry one-line observation about momentum or focus. Under 250 words. Atlas voice — no hype, no apology, no emoji.",
