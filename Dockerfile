@@ -12,15 +12,12 @@
 #
 # Build time target: ~1-2 min (image pull + 5 COPY layers).
 
-# Pinned, not :latest. Upstream switched the image to s6-overlay init between
-# v2026.5.16 and v2026.5.29 (ENTRYPOINT /init + s6 services run the gateway
-# themselves). That collides with our railway.toml startCommand → entrypoint.sh
-# architecture: every build since June 7 boot-looped with
-# "rc.init: 91: -g: not found" and the gateway never started.
-# v2026.5.16 is the last pre-s6 release (v0.13.x era, matches this branch's
-# base). Migrating to the s6 layout (cont-init.d hooks instead of
-# entrypoint.sh) is the prerequisite for unpinning.
-FROM nousresearch/hermes-agent:v2026.5.16
+# Pinned by digest, not floating :latest — a floating tag is what caused the
+# June 7-10 2026 outage (upstream switched to s6-overlay init under our feet
+# and the old startCommand boot-looped). This deploy now targets the s6
+# layout; bump the digest deliberately, and re-verify boot logs after.
+# Digest = :latest as of 2026-06-10 (hermes-agent 0.16.0, s6-overlay 3.2.3.0).
+FROM nousresearch/hermes-agent:latest@sha256:33c7741c4de83f6aea9f912b72703c761cff3ffaa51f7486069f29c7afb385aa
 
 # Pre-install the platform.slack lazy-deps stack so first gateway boot doesn't
 # need network for `lazy_deps.ensure("platform.slack")`. The official image
@@ -64,4 +61,19 @@ COPY docker/seed-memories/USER.md   /opt/hermes/docker/seed-memories/USER.md
 COPY docker/seed-memories/MEMORY.md /opt/hermes/docker/seed-memories/MEMORY.md
 COPY docker/seed-cron/jobs.json     /opt/hermes/docker/seed-cron/jobs.json
 COPY docker/merge_cron_seed.py      /opt/hermes/docker/merge_cron_seed.py
-COPY docker/entrypoint.sh           /opt/hermes/docker/entrypoint.sh
+
+# Atlas volume seeding (config/memories/cron/GWS creds) as an s6 cont-init
+# hook. The 00- prefix makes it run before upstream's 01-hermes-setup —
+# see the header comment in the script for why that ordering matters.
+# NOTE: docker/entrypoint.sh is retired. Upstream's stage2-hook.sh +
+# main-wrapper.sh now own privilege drop, volume chown, .env/SOUL.md
+# seeding, auth.json bootstrap, config migration, and CMD routing.
+COPY --chmod=0755 docker/cont-init.d/00-atlas-seed /etc/cont-init.d/00-atlas-seed
+
+# The gateway runs as the container's main program (s6-overlay "Architecture
+# B": /init → rc.init → main-wrapper.sh routes non-executable first args to
+# `hermes <args>`). Baked CMD instead of railway.toml startCommand — Railway's
+# startCommand mangles the entrypoint vector (it's what exec'd a bare `-g` in
+# the June outage); the image-default path is the one upstream tests.
+# `-v` keeps INFO logs on stderr so Railway captures gateway activity.
+CMD ["gateway", "run", "-v"]

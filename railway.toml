@@ -6,19 +6,16 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-# Railway's startCommand REPLACES the Docker ENTRYPOINT (not just CMD), which
-# bypassed the entrypoint script that sources the venv. Result: `hermes` not on
-# PATH → first deploy attempt died with "executable hermes could not be found".
+# NO startCommand — deliberately. The image runs the gateway via its baked
+# CMD ["gateway", "run", "-v"] (see Dockerfile), routed by the upstream
+# s6-overlay chain: /init → rc.init → main-wrapper.sh → `hermes gateway run -v`.
 #
-# Invoke tini + entrypoint.sh explicitly, passing `gateway run` as args.
-# The entrypoint sources /opt/hermes/.venv/bin/activate (which adds hermes to
-# PATH) and then `exec hermes "$@"`. tini reaps MCP stdio subprocesses.
-#
-# `-v` raises stderr verbosity from WARNING to INFO. Without it, plugin
-# discovery + Slack Socket Mode connect log records only land in the on-disk
-# gateway.log inside the container — Railway captures stdout/stderr only, so
-# the gateway looked stalled after the banner when it was actually fine.
-startCommand = "/usr/bin/tini -g -- /opt/hermes/docker/entrypoint.sh gateway run -v"
+# History: the tini-era image needed startCommand = "/usr/bin/tini -g --
+# /opt/hermes/docker/entrypoint.sh gateway run -v". When upstream switched
+# the base image to s6-overlay (between v2026.5.16 and v2026.5.29), Railway's
+# startCommand handling mangled the entrypoint vector and the container
+# boot-looped on `rc.init: 91: -g: not found` — the June 7-10 2026 outage.
+# Do not reintroduce startCommand; bake CMD changes into the Dockerfile.
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 5
 
