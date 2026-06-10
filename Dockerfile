@@ -71,9 +71,12 @@ COPY docker/merge_cron_seed.py      /opt/hermes/docker/merge_cron_seed.py
 COPY --chmod=0755 docker/cont-init.d/00-atlas-seed /etc/cont-init.d/00-atlas-seed
 
 # The gateway runs as the container's main program (s6-overlay "Architecture
-# B": /init → rc.init → main-wrapper.sh routes non-executable first args to
-# `hermes <args>`). Baked CMD instead of railway.toml startCommand — Railway's
+# B": /init → rc.init → main-wrapper.sh, which execs an executable first arg
+# directly). Baked CMD instead of railway.toml startCommand — Railway's
 # startCommand mangles the entrypoint vector (it's what exec'd a bare `-g` in
 # the June outage); the image-default path is the one upstream tests.
-# `-v` keeps INFO logs on stderr so Railway captures gateway activity.
-CMD ["gateway", "run", "-v"]
+# The wrapper opts out of s6-supervised gateway mode (keeps INFO logs in
+# Railway's stream) and translates hermes's deliberate exit-1-on-SIGTERM to 0
+# (suppresses bogus "Deploy Crashed" emails on redeploys) — see its header.
+COPY --chmod=0755 docker/atlas-gateway.sh /opt/hermes/docker/atlas-gateway.sh
+CMD ["/opt/hermes/docker/atlas-gateway.sh"]
