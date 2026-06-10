@@ -994,6 +994,30 @@ def list_diagnostics(
         conn.close()
 
 
+@router.get("/dispatcher-status")
+def dispatcher_status():
+    """Return whether a gateway+dispatcher is currently alive.
+
+    Cheap, no DB hit — just calls ``_check_dispatcher_presence()`` which
+    looks at the PID file under ``$HERMES_HOME`` and the
+    ``kanban.dispatch_in_gateway`` config flag. Used by the board view
+    to show a top banner when no dispatcher is running so the user
+    isn't left wondering why their `ready` cards never start.
+
+    Shape: ``{"running": bool, "message": str}``. Always 200 — if the
+    probe itself errors we fall back to ``running=True`` (silent) on
+    the underlying helper, matching CLI behavior (better to miss a
+    warning than to cry wolf).
+    """
+    try:
+        from hermes_cli.kanban import _check_dispatcher_presence
+        running, message = _check_dispatcher_presence()
+        return {"running": bool(running), "message": message or ""}
+    except Exception as exc:  # noqa: BLE001
+        # Same silent-fallback contract as create_task uses.
+        return {"running": True, "message": "", "probe_error": str(exc)}
+
+
 # ---------------------------------------------------------------------------
 # Recovery actions — reclaim a running claim, reassign to a new profile
 # ---------------------------------------------------------------------------

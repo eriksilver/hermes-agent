@@ -655,6 +655,7 @@ _ACTION_LOG_DIR: Path = get_hermes_home() / "logs"
 # Short ``name`` (from the URL) → absolute log file path.
 _ACTION_LOG_FILES: Dict[str, str] = {
     "gateway-restart": "gateway-restart.log",
+    "gateway-start": "gateway-start.log",
     "hermes-update": "hermes-update.log",
 }
 
@@ -725,6 +726,28 @@ async def restart_gateway():
         "ok": True,
         "pid": proc.pid,
         "name": "gateway-restart",
+    }
+
+
+@app.post("/api/gateway/start")
+async def start_gateway():
+    """Kick off ``hermes gateway start`` in the background.
+
+    Distinct from ``/restart``: ``restart`` only works when a gateway is
+    already running. ``start`` self-heals — it (re-)bootstraps the
+    launchd/systemd unit if it was unloaded and then kickstarts the
+    service. Used by the Kanban dashboard's "gateway down" banner so the
+    user has a one-click fix without dropping to a terminal.
+    """
+    try:
+        proc = _spawn_hermes_action(["gateway", "start"], "gateway-start")
+    except Exception as exc:
+        _log.exception("Failed to spawn gateway start")
+        raise HTTPException(status_code=500, detail=f"Failed to start gateway: {exc}")
+    return {
+        "ok": True,
+        "pid": proc.pid,
+        "name": "gateway-start",
     }
 
 
