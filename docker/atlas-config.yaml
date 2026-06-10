@@ -532,6 +532,63 @@ mcp_servers:
       - get_file_contents
       - list_branches
       - list_releases
+  # Google Workspace — two stdio instances of taylorwilsdon/google_workspace_mcp.
+  # Stdio is single-user only, so we run one process per account. Each is locked
+  # to its credentials dir; an Atlas misroute can't accidentally reach the other
+  # account because the server doesn't have those tokens loaded.
+  # Setup walkthrough: mcp/google-workspace/SETUP.md
+  gworkspace-personal:
+    command: workspace-mcp
+    args:
+    - --tools
+    - gmail
+    - calendar
+    - --single-user
+    env:
+      GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID}
+      GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET}
+      USER_GOOGLE_EMAIL: quiksilvere@gmail.com
+      WORKSPACE_MCP_CREDENTIALS_DIR: /opt/data/google-workspace-mcp/personal-creds
+    # Inert until the one-time OAuth setup is done (mcp/google-workspace/SETUP.md)
+    # and GOOGLE_OAUTH_CLIENT_ID/SECRET + GOOGLE_CREDS_PERSONAL_B64 land in
+    # Railway. Flip to true after.
+    enabled: false
+    tools:
+      include:
+      - search_gmail_messages
+      - get_gmail_message_content
+      - get_gmail_thread_content
+      - draft_gmail_message
+      - send_gmail_message
+      - list_calendars
+      - get_events
+      - manage_event
+      - query_freebusy
+  gworkspace-work:
+    command: workspace-mcp
+    args:
+    - --tools
+    - gmail
+    - calendar
+    - --single-user
+    env:
+      GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID}
+      GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET}
+      USER_GOOGLE_EMAIL: hello@pksprops.com
+      WORKSPACE_MCP_CREDENTIALS_DIR: /opt/data/google-workspace-mcp/work-creds
+    # Inert until OAuth setup + GOOGLE_CREDS_WORK_B64 (see SETUP.md). Flip after.
+    enabled: false
+    tools:
+      include:
+      - search_gmail_messages
+      - get_gmail_message_content
+      - get_gmail_thread_content
+      - draft_gmail_message
+      - send_gmail_message
+      - list_calendars
+      - get_events
+      - manage_event
+      - query_freebusy
 # ── Fallback Model ────────────────────────────────────────────────────
 # Automatic provider failover when primary is unavailable.
 # Uncomment and configure to enable. Triggers on rate limits (429),

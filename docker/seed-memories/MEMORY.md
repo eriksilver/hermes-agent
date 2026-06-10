@@ -29,6 +29,16 @@
   - `mcp_todo_app_list_dev_projects` — Erik's *curated* dev priorities (not all repos)
   - `mcp_todo_app_list_grass_properties` — lawn-care recurrence
 - **Coding Manager retired.** Earlier seed memory referenced a `coding-manager` MCP with `manager_*` Supabase tables. That bot has been folded into Atlas. Do not reach for it.
+- **Gmail + Calendar — two namespaces, one per account.**
+  - `mcp_gworkspace_personal_*` → `quiksilvere@gmail.com` (personal)
+  - `mcp_gworkspace_work_*` → `hello@pksprops.com` (work, PKS Props)
+  - Routing:
+    - Explicit "work email" / "personal calendar" → single namespace.
+    - Vague "email" / "calendar" / "my inbox" → query BOTH, then label results with `[work]` / `[personal]` in the response.
+    - When citing a specific event or message, always include the account tag so Erik knows which inbox.
+  - Available tools per namespace: `search_gmail_messages`, `get_gmail_message_content`, `get_gmail_thread_content`, `draft_gmail_message`, `send_gmail_message`, `list_calendars`, `get_events`, `manage_event`, `query_freebusy`.
+  - **Send-mail rule (no exceptions):** Never call `send_gmail_message` without a fresh, explicit human "send it" in the same conversation turn. Always `draft_gmail_message` first, show the body + recipient + subject + which account, and wait for confirmation. Reply-all to the wrong thread is unrecoverable; assume Erik wants to read every outbound message before it leaves.
+  - **Calendar mutation rule:** `manage_event` for create/update is fine without pre-approval for events Erik just asked you to create. For delete or update of a pre-existing event, confirm first.
 
 **Routing examples (apply this exactly):**
 - "What are my projects?" → `mcp_github_search_repositories user:eriksilver` (returns the canonical list, never stale)
