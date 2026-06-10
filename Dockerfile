@@ -12,7 +12,15 @@
 #
 # Build time target: ~1-2 min (image pull + 5 COPY layers).
 
-FROM nousresearch/hermes-agent:latest
+# Pinned, not :latest. Upstream switched the image to s6-overlay init between
+# v2026.5.16 and v2026.5.29 (ENTRYPOINT /init + s6 services run the gateway
+# themselves). That collides with our railway.toml startCommand → entrypoint.sh
+# architecture: every build since June 7 boot-looped with
+# "rc.init: 91: -g: not found" and the gateway never started.
+# v2026.5.16 is the last pre-s6 release (v0.13.x era, matches this branch's
+# base). Migrating to the s6 layout (cont-init.d hooks instead of
+# entrypoint.sh) is the prerequisite for unpinning.
+FROM nousresearch/hermes-agent:v2026.5.16
 
 # Pre-install the platform.slack lazy-deps stack so first gateway boot doesn't
 # need network for `lazy_deps.ensure("platform.slack")`. The official image
