@@ -92,6 +92,37 @@
       "origin": null,
       "enabled_toolsets": null,
       "workdir": "/opt/data/workspace"
+    },
+    {
+      "id": "todo-briefing",
+      "name": "todo-briefing",
+      "prompt": null,
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": "tmp=$(mktemp)\ncode=$(curl -sS -o \"$tmp\" -w '%{http_code}' -X POST --max-time 150 https://custom-to-do-app-production.up.railway.app/api/briefing/run 2>/dev/null)\nif [ \"$code\" != \"200\" ]; then\n  echo \"⚠ Daily briefing cron failed — HTTP ${code:-000} (no briefing generated; no push sent). $(head -c 200 \"$tmp\" 2>/dev/null)\"\nfi\nrm -f \"$tmp\"\n",
+      "no_agent": true,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 7 * * *",
+        "display": "0 7 * * *"
+      },
+      "schedule_display": "0 7 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 0
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "deliver": "slack:C0B46K3HH8R",
+      "origin": null,
+      "enabled_toolsets": null,
+      "workdir": "/opt/data/workspace"
     }
   ]
 }
